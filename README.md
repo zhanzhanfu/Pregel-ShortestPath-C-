@@ -17,5 +17,5 @@
   * 实现怎么简单怎么来，Vertex 类放在代码里但并没有用到，可以直接使用 ShortestPathVertex 类
   * vector<vector<int> > messages(105) 作为消息载体，MessageIterator 构造函数中清空 messages[i]，作为最终结束的判断。
   * MessageIterator 构造函数可以优化，这里复制了 vector<int> ，用指针也许更好。
-  * 为了尽可能少的修改 ShortestPathVertex 的结构，定义了 Iterator 基类
+  * ShortestPathVertex 中有 MessageIterator* ，因此定义了 iterator.h
   * 最终结束的判断没有使用 bool isHalt，只判断 messages 是否为空，此处已经足够

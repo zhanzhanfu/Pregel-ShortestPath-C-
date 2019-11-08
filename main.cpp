@@ -1,83 +1,16 @@
+#include "iterator.h"
+
 #include <iostream>
 #include <vector>
 #include <algorithm>
 #include <string>
 using namespace std;
 
-vector<vector<int> > messages(105);
-const int src_vertex = 0;
+vector<vector<int> > messages(105);   //information carrier
+const int src_vertex = 0;    //source vertex
 
 
-class Iterator {
-public:
-	Iterator() {};
-	virtual ~Iterator() {};
-	virtual void First() = 0;
-	virtual void Next() = 0;
-	virtual bool Done() = 0;
-};
-
-class MessageIterator :public Iterator {
-public:
-	MessageIterator(vector<int>& v) :val(v) {
-		index = 0;
-		v.clear();
-	}
-	~MessageIterator() {}
-
-	virtual void First() {
-		index = 0;
-	}
-	virtual void Next() {
-		if (index < val.size())
-			index++;
-	}
-	virtual bool Done() {
-		return index == val.size();
-	}
-	int Value() {
-		return val[index];
-	}
-
-private:
-	int index;
-	vector<int> val;
-};
-
-class OutEdgeIterator :public Iterator {
-public:
-	OutEdgeIterator(vector<int>& v) : val(v)
-	{
-		index = 0;
-	}
-	~OutEdgeIterator() {}
-
-	virtual void First()
-	{
-		index = 0;
-	}
-	virtual void Next()
-	{
-		if (index < val.size())
-			index++;
-	}
-	virtual bool Done()
-	{
-		return index == val.size();
-	}
-	int GetValue()
-	{
-		return 1;
-	}
-	int Target()
-	{
-		return val[index];
-	}
-private:
-	int index;
-	vector<int> val;
-};
-
+//vertex
 template <typename VertexValue, typename EdgeValue, typename MessageValue>
 class Vertex {
 public:
@@ -93,6 +26,7 @@ public:
 
 class ShortestPathVertex : public Vertex<int, int, int> {
 public:
+	//constructor
 	ShortestPathVertex(int id_, vector<int>& edges_)
 	{
 		id = id_;
@@ -100,13 +34,17 @@ public:
 		edges = edges_;
 		isHalt = false;
 	}
-
+	//compute
 	void Compute(MessageIterator* msgs) {
+		//judge is source vertex
 		int mindist = IsSource(vertex_id()) ? 0 : INT_MAX;
+		//traverse msgs, get the minimum value
 		for (; !msgs->Done(); msgs->Next())
 		{
 			mindist = min(mindist, msgs->Value());
 		}
+		// 1. if the minimum value less than current value, modify the current value
+		// 2. send newest message to adjacent vertices
 		if (mindist < GetValue()) {
 			*MutableValue() = mindist;
 			OutEdgeIterator iter = GetOutEdgeIterator();
@@ -115,33 +53,40 @@ public:
 				SendMessageTo(iter.Target(), mindist + iter.GetValue());
 			}
 		}
+		//make the vertex halt
 		VoteToHalt();
 	}
-
+	//return vertex id
 	const int& vertex_id() const
 	{
 		return id;
 	}
+	//judge is source vertex
 	bool IsSource(int id) const
 	{
 		return id == src_vertex;
 	}
+	//get current distance
 	const int& GetValue()
 	{
 		return d;
 	}
+	//modify current distance
 	int* MutableValue()
 	{
 		return &d;
 	}
+	//return edge iterator
 	OutEdgeIterator GetOutEdgeIterator()
 	{
 		return OutEdgeIterator(edges);
 	}
+	//send message to adjacent vertices
 	void SendMessageTo(const int dest_vertex, const int& message)
 	{
 		messages[dest_vertex].push_back(message);
 	}
+	//make the vertex halt
 	void VoteToHalt()
 	{
 		isHalt = true;
@@ -156,8 +101,7 @@ private:
 
 int main() {
 	vector<ShortestPathVertex> spv;
-	//num of vertex
-	const int num = 10;
+	const int num = 100;    //num of vertex
 
 	//input
 	for (int i = 0; i < num; i++)
@@ -176,7 +120,7 @@ int main() {
 		}
 		spv.push_back(ShortestPathVertex(id, edges));
 	}
-	//debug code
+	//output vertex 
 	/*for (int i = 0; i < spv.size(); i++)
 	{
 		cout << spv[i].vertex_id() << " ";
@@ -211,7 +155,7 @@ int main() {
 	{
 		cout << spv[i].vertex_id() << " " << spv[i].GetValue() << endl;
 	}
-	//debug code
+	//output messages
 	/*for (int i = 0; i < 10; i++)
 	{
 		cout << i << " ";
@@ -224,132 +168,6 @@ int main() {
 
 	return 0;
 }
-
-/*v=100 e=10
-0 81 65 35 68 8 43 28 78
-1 48 0 17 52 55 25 59 63 31 15
-2 0 49 67 54 55 39 8 10 60 62
-3 0 83 68 36 58 27 28 45 62
-4 32 49 33 67 52 54 23 89 76 13
-5 0 67 21 57 89 27 91 11 45 29
-6 17 67 21 41 73 9 74 26 29 31
-7 33 66 19 23 88 56 77 62 78 95
-8 32 19 99 36 37 85 22 42 26 15
-9 0 65 83 99 5 7 57 27 92
-10 49 66 3 69 42 90 77 93 78 15
-11 67 37 87 39 8 73 9 44 61 46
-12 16 64 19 38 24 75 11 45 78 62
-13 0 1 2 67 38 42 11 78 79 47
-14 33 19 68 22 58 92 44 13 30
-15 96 50 66 36 6 23 73 58 30 15
-16 97 4 53 69 54 7 73 76 79
-17 48 97 50 37 6 73 58 75 45
-18 65 52 6 56 60 45 30 94 63 95
-19 65 82 18 35 68 52 41 60 62
-20 0 37 86 70 88 89 25 42 58
-21 17 68 39 71 89 42 59 27 76 77
-22 81 97 51 85 38 72 41 26 28
-23 3 38 87 43 77 46 15 47
-24 66 50 53 7 25 89 26 45 78 15
-25 32 33 81 2 21 69 59 44 12 62
-26 97 4 69 22 72 41 58 42 75 62
-27 1 97 34 84 39 71 7 89 91 78
-28 99 51 6 23 87 27 62 31
-29 32 51 68 53 55 7 90 59 28
-30 96 36 53 89 26 10 27 13 93 14
-31 97 17 51 71 24 88 57 91 59 92
-32 54 23 39 88 40 28 92 61 13 47
-33 48 1 98 88 41 73 59 29
-34 64 65 67 35 4 85 40 42 46 95
-35 2 85 22 88 91 12 92 93 95 63
-36 96 80 99 19 86 6 90 92 28
-37 17 52 6 24 59 29 78 30 15
-38 49 83 20 52 21 26 75 43 92 76
-39 34 68 53 21 23 41 28 13 47
-40 64 80 48 19 54 87 59 77 30
-41 67 53 22 23 10 58 11 45 31
-42 16 64 81 49 34 83 22 92 30
-43 33 18 51 67 22 72 74 30
-44 64 81 66 82 52 4 57 94 95 15
-45 16 81 2 3 52 5 72 57 14 47
-46 81 23 71 8 26 11 29 93 63
-47 50 20 72 24 41 74 59 94 46 47
-48 0 18 67 99 69 41 57 13 47
-49 96 81 97 98 99 6 55 9 59 45
-50 49 97 66 20 85 22 42 12 93 78
-51 0 50 99 3 21 7 87 41 91 95
-52 16 33 67 37 7 9 10 62 79
-53 80 82 38 23 39 25 59 61 15
-54 64 98 51 37 53 6 89 58 28 61
-55 80 16 64 0 97 22 56 90 76 62
-56 65 85 89 74 75 59 76 93 78 15
-57 0 17 2 67 19 39 40 91 30
-58 16 2 83 3 67 24 89 42 14 79
-59 52 6 71 90 42 91 44 92 46 79
-60 17 82 18 85 21 5 38 7 46 63
-61 32 65 18 2 36 21 71 30 79
-62 17 51 85 86 38 93 79
-63 98 54 70 25 9 41 10 26 29 47
-64 97 2 20 5 86 7 26 13 45 14
-65 96 33 82 52 6 10 58 91 75 47
-66 97 98 2 70 55 87 88 24 73 62
-67 16 1 68 52 37 56 40 9
-68 49 52 20 54 11 76 13 14 62 78
-69 82 3 36 52 56 42 60 93 78 15
-70 81 20 85 87 91 27 28 45 62
-71 35 19 6 86 25 89 11 60 13
-72 80 17 2 34 70 8 10 43 62 78
-73 0 1 65 98 82 99 8 40 60 63
-74 0 48 97 2 3 83 85 25 11
-75 16 35 84 6 87 25 26 29 46 30
-76 64 81 17 18 19 83 26 44 47
-77 96 16 65 69 6 70 24 44 46
-78 16 0 48 66 4 85 54 72 59
-79 1 2 52 86 39 56 40 57 41 74
-80 16 37 21 6 86 92 13 15 47
-81 96 64 33 35 67 22 74 44 28 95
-82 32 83 36 69 85 90 42 76 79
-83 51 35 73 58 42 11 76 14 95 15
-84 17 21 74 58 76 13 62 30 47 95
-85 32 48 65 18 85 21 37 8 93 77
-86 64 85 21 87 43 12 60 13 14 47
-87 32 16 18 98 51 52 22 56 76 14
-88 4 22 8 88 57 90 59 91 61
-89 18 34 51 35 83 70 10 62 47
-90 81 66 98 4 20 69 8 73 92 76
-91 64 49 36 37 54 9 75 76 31 79
-92 0 98 19 4 86 41 78 47 79
-93 0 97 19 20 53 69 9 28 12 60
-94 32 68 69 85 22 9 73 43 11 60
-95 49 1 50 6 87 24 41 91 29 95
-96 96 33 18 82 84 85 21 6 23 87
-97 16 98 50 19 4 22 9 26 63
-98 16 32 50 36 37 8 9 41 60 29
-99 17 98 2 83 52 36 7 58 62 79
-*/
-
-/*v=20 e=3
-0 2 6 15
-1 11 15
-2 18 10 12
-3 16 12 13
-4 18 2 4
-5 18 11 15
-6 17 4 9
-7 17 2 8
-8 7 10 11
-9 19 4 14
-10 5 7 10
-11 1 3 7
-12 16 1 6
-13 1 2 9
-14 17 7 10
-15 0 5
-16 0 17 5
-17 18 7 14
-18 16 1
-19 17 2
-*/
 
 /*v=100 e=5
 0 16 1 99 92
